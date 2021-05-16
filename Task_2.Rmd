@@ -13,7 +13,7 @@ library(raster)
 ```
 
 ## Get the data
-I download the files to the project folder, uncompress them and remove the compressed versions. If the uncompressed files already exist, there is not need to download them. 
+I download the files to the project folder, uncompress them and remove the compressed versions. If the uncompressed files already exist, there is no need to download them. 
 
 ```{r}
 if (file.exists("sr.csv")==FALSE) {

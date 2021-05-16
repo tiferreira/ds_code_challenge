@@ -1,0 +1,88 @@
+---
+title: "Task 4.2 - Introspection Challenge"
+author: "Thomas Ferreira"
+date: "16/05/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(data.table)
+```
+
+## Get the data
+I download the files to the project folder, uncompress them and remove the compressed versions. If the uncompressed files already exist, there is no need to download them. 
+
+```{r}
+if (file.exists("sr_hex.csv")==FALSE) {
+  download.file(url="https://cct-ds-code-challenge-input-data.s3.af-south-1.amazonaws.com/sr_hex.csv.gz", destfile ="sr_hex.csv.gz", method='curl')
+  untar("sr_hex.csv.gz")
+  file.remove("sr_hex.csv.gz")
+  }
+sr <- fread("sr_hex.csv")
+hex8 <- readOGR("https://cct-ds-code-challenge-input-data.s3.af-south-1.amazonaws.com/city-hex-polygons-8.geojson")
+```
+
+##Reshaping
+Limit data to the Water and Sanitation department and drop data with no Hex index.
+Remove initial sr_hex.csv file to free up memory. Calculate the counts by Hex and Request Type.
+
+```{r}
+sr[,month:=month(CreationDate)]
+sr[,year:=year(CreationDate)]
+
+# Merge in suburb property values
+sub_val <- fread("Valuation suburbs 2012 and 2015.csv")
+setnames(sub_val, "OFFICIAL_SUBURB", "OfficialSuburbs")
+
+data_precast <- sr[department=="Water and Sanitation" & h3_level8_index!=0,]
+data_precast <- merge(data_precast, sub_val, by="OfficialSuburbs", all.x=TRUE)
+data_precast <- data_precast[,y_count := .N, by=.(h3_level8_index, year, Code)]
+data_precast <- data_precast[,m_count := .N, by=.(h3_level8_index, year, month, Code)]
+data_precast <- data_precast[,propval := mean(GV2015_VAL), by=.(h3_level8_index)]
+
+data_precast <- data_precast[,N := .N, by=.(h3_level8_index, Code)]
+
+
+
+```
+                 
+                 
+                 
+
+
+x <- fread("Valuation suburbs 2012 and 2015.csv")
+setnames(x, "OFFICIAL_SUBURB", "OfficialSuburbs")
+
+
+#Identify last date
+max(sr[,CreationDate])
+#Thus limit data to 2019
+
+
+
+#rm(sr)
+head(data)
+```
+
+Request types that have large variation and a large number of observations are more effectively explained. Thus I want to shy away for request type with low variation. Next I calculate the standard deviation of the counts by request type and identify types with sufficient variation and tabulate request types that have standard deviations in the 25%. Tabulating the data also shows the number of observations by code. 
+
+```{r}
+data[,N_sd:= sd(N), by="Code"]
+summary(data[,N_sd])
+table(data[N_sd>=9.360,Code])
+```
+For now lets focus on Customer : Reconnection Requests
+
+
+
+
+
+
+
+
+
+

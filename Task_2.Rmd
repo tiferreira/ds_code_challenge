@@ -1,0 +1,85 @@
+---
+title: "Task 2"
+output: html_notebook
+---
+
+## Required Packages
+
+```{r}
+library(data.table)
+library(rgdal)
+library(raster)
+
+```
+
+## Get the data
+I download the files to the project folder, uncompress them and remove the compressed versions. If the uncompressed files already exist, there is not need to download them. 
+
+```{r}
+if (file.exists("sr.csv")==FALSE) {
+  download.file(url="https://cct-ds-code-challenge-input-data.s3.af-south-1.amazonaws.com/sr.csv.gz", destfile ="sr.csv.gz", method='curl')
+  untar("sr.csv.gz")
+  file.remove("sr.csv.gz")
+  }
+if (file.exists("sr_hex.csv.gz")==FALSE) {
+  download.file(url="https://cct-ds-code-challenge-input-data.s3.af-south-1.amazonaws.com/sr_hex.csv.gz", destfile ="sr_hex.csv.gz", method='curl')
+  untar("sr_hex.csv.gz")
+  file.remove("sr_hex.csv.gz)
+  }
+
+```
+
+## Read in the Data
+I use the the `data.table` package's `fread` command to read in the data. I find it reads in data very efficiently. 
+
+The GEOJSON can be read in directly from the URL using `readOGR` from the `RGDAL` package. 
+
+```{r}
+sr_hex_compare <- fread("sr_hex.csv")
+sr <- fread("sr.csv")
+
+hex8 <- readOGR("https://cct-ds-code-challenge-input-data.s3.af-south-1.amazonaws.com/city-hex-polygons-8.geojson")
+```
+
+## Manipulate the Service Request Data
+
+Change the Service Request data (`sr`) into a spatialPointsDataframe using the Latitude and Longitude information. For observations with missing coordinates, replace them with 0. Any value will work that is not in the spatial extent of Cape Town. It's also important choose the value based on the Coordinate Reference System (CRS) used which in this case is WGS84. I feed to the spatial creation process with CRS information from the downloaded HEX8 file.
+```{r}
+sr[is.na(Latitude), Latitude:=0]
+sr[is.na(Longitude), Longitude:=0]
+sr.sp <- SpatialPointsDataFrame(sr[, .(Longitude , Latitude)], data=sr, proj4string=crs(hex8))
+```
+
+## Spatial Merge between HEX8 and Service request data
+I use the `over` command from the raster package. This works faster than point.in.poly for the `spatialEko` package. It does give return results in a less intuitive output as it only returns the results without any unique identifiers from the original data - just the same order. Using either the output for the point.in.poly or as required comparing it to the already merged dataset *sr_hex_csv* confirms that the method works. 
+
+```{r}
+match <- data.table(over(sr.sp, hex8))
+```
+
+## Built in function to stop the script running if non-matched observations are above a certain threshold.
+I find that when working with large data percentages are more intuitive than actual numbers when it comes to evualtions. Thus I work hear with the proportion of observations not matched. Use 25% as a threshold to make the full script run. +-22% Actually do not match  
+
+```{r}
+if (nrow(match[is.na(index),])/nrow(match)>0.25) {
+  stop("More than 25% observations did not match")    
+  }
+
+```
+
+Merge the Hex index numbers into the sr data. I work for the `sr.sp` dataframe to make sure the ordering is the same as data output by the `over` command. 
+```{r}
+srhex <- data.table(cbind(sr.sp@data,match))
+srhex[is.na(index),index:=0]
+```
+
+
+## Evaluate results using sr_hex.csv
+I have read in sr_hex.csv as the data.table sr_hex_compare
+```{r}
+sr_hex_test <- data.table(merge(srhex, sr_hex_compare, by="NotificationNumber"))
+print(nrow(sr_hex_test[h3_level8_index!=index,]))
+print(nrow(sr_hex_test[h3_level8_index!=index,])/nrow(sr_hex_test))
+```
+
+I get 0.01% of observations that not have the same index number as the "truth" `sr_hex.csv` file. In the grand scheme of things this is not a lot. My suspicion is that this due to different spatial engines (R vs Python) but this will have to be checked further 

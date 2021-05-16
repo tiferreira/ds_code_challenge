@@ -1,0 +1,91 @@
+---
+title: "Task 3 Part 1"
+output: html_notebook
+---
+
+## Packages
+
+```{r}
+library(data.table)
+library(ggplot2)
+```
+
+## Get and read the data
+I download the files to the project folder, uncompress them and remove the compressed versions. If the uncompressed files already exist, there is not need to download them. 
+
+```{r}
+if (file.exists("sr_hex_tr.csv")==FALSE) {
+  download.file(url='https://cct-ds-code-challenge-input-data.s3.af-south-1.amazonaws.com/sr_hex_truncated.csv', destfile ="sr_hex_tr.csv", method='curl')
+print("File does not exist. Downloading it...")
+}
+sr_hex_t <- fread("sr_hex_tr.csv")
+```
+
+## Subset the data to electricity
+```{r}
+elect <- sr_hex_t[department=="Electricity"]
+```
+
+## Analysis Thoughts
+The request states that the analyst should identify "which areas and request types should Electricity concentrate on to reduce the overall volume of their requests".
+
+This request can be interpreted in terms of two time frames:
+1. The first is the immediate: At this point in time, which areas should be focussed on with regards to open requests?
+2. The second could be though of as problem areas - Areas that in general have the most service requests over time. This could potentialy be indicative of potential systemic problems in those areas. 
+
+Areas here can be defined as both types of requests and also geographically. It is likely that the type of requests will change with the weather. Rainfall could for example lead to certain types of requests in the winter whereas strong winds in the summer could lead to other requests. 
+
+# Analysis of Open Requests on 31 July 2019
+
+```{r}
+elect_open <- elect[Open==TRUE]
+
+suburb_count_open <- elect_open[OfficialSuburbs!="None",.N, by="OfficialSuburbs"]
+setkey(suburb_count_open,N)
+type_count_open <-  elect_open[,.N, by="Code"]
+setkey(type_count_open,N)
+type_sub_open <-  elect_open[,.N, by=.(OfficialSuburbs, Code)]
+```
+
+# Visulazation of Open Requests by Area and Type
+If I have time I might try and show this on the Hex Maps
+
+```{r}
+ggplot(tail(suburb_count_open,5)) + aes(y=N, x=reorder(OfficialSuburbs, N, sum)) + geom_col() + coord_flip() + ggtitle("Top 5 Suburbs by Nr of Open Requests: 31 July 2019") + xlab("Suburb") + ylab("Nr of Requests")
+ggplot(tail(type_count_open,5)) + aes(y=N, x=reorder(Code, N, sum)) + geom_col() + coord_flip() + ggtitle("Top 5 Open Request Types: 31 July") + xlab("Suburb") + ylab("Nr of Requests")
+```
+
+#  Analysis for the full 3 month period - Systemic problem areas
+## Data Preperation for Visualization
+Collapse the data into summary statistics by area, type, and both. 
+
+```{r}
+suburb_count <- elect[OfficialSuburbs!="None",.N, by="OfficialSuburbs"]
+setkey(suburb_count,N)
+type_count <-  elect[,.N, by="Code"]
+setkey(type_count,N)
+type_sub <-  elect[,.N, by=.(OfficialSuburbs, Code)]
+type_sub_date<- elect[,.N, by=.(OfficialSuburbs, Code, CreationDate)]
+
+```
+
+## Service Requests by Area and by Type
+```{r}
+ggplot(tail(suburb_count,15)) + aes(y=N, x=reorder(OfficialSuburbs, N, sum)) + geom_col() + coord_flip() + ggtitle("Top 15 Nr of Requests by Suburb: 1 May - 31 July") + xlab("Suburb") + ylab("Nr of Requests")
+ggplot(tail(type_count,15)) + aes(y=N, x=reorder(Code, N, sum)) + geom_col() + coord_flip() + ggtitle("Top 15 Nr of Requests by Code: 1 May - 31 July") + xlab("Suburb") + ylab("Nr of Requests")
+```
+## Top 10 Service Requests Type in Areas with Most Service Requests
+
+```{r}
+ggplot(type_sub[OfficialSuburbs=="PHILIPPI",]) + aes(y=N, x=reorder(Code, N, sum)) + geom_col() + coord_flip() + ggtitle("Request Types in Philippi: 1 May - 31 July") + xlab("Suburb") + ylab("Nr of Requests")
+ggplot(type_sub[OfficialSuburbs=="GUGULETU",]) + aes(y=N, x=reorder(Code, N, sum)) + geom_col() + coord_flip() + ggtitle("Request Types in Guguletu: 1 May - 31 July") + xlab("Suburb") + ylab("Nr of Requests")
+ggplot(type_sub[OfficialSuburbs=="LANGA",]) + aes(y=N, x=reorder(Code, N, sum)) + geom_col() + coord_flip() + ggtitle("Request Types in Langa: 1 May - 31 July") + xlab("Suburb") + ylab("Nr of Requests")
+```
+## Are Power Outages a Systemic Problem in Philippi, Gugulethu and Langa?
+
+
+```{r}
+ggplot(type_sub_date[Code=="No Power" & (OfficialSuburbs==c("PHILIPPI", "LANGA", "GUGULETU")),]) + aes(x=CreationDate) + geom_line(aes(y=N, color=OfficialSuburbs)) + geom_hline(aes(
+                                          yintercept = mean(type_sub_date[Code=="No Power",N]), 
+                                          linetype="City Daily Average")) + scale_linetype_manual(name = "", values = c('dotted')) + ggtitle("Number of Daily Power Outages Service Requests") + xlab("Date") + ylab("Nr of Requests")
+```

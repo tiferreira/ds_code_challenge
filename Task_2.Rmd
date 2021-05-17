@@ -1,6 +1,8 @@
 ---
 title: "Task 2"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 ## Required Packages
@@ -21,10 +23,10 @@ if (file.exists("sr.csv")==FALSE) {
   untar("sr.csv.gz")
   file.remove("sr.csv.gz")
   }
-if (file.exists("sr_hex.csv.gz")==FALSE) {
+if (file.exists("sr_hex.csv")==FALSE) {
   download.file(url="https://cct-ds-code-challenge-input-data.s3.af-south-1.amazonaws.com/sr_hex.csv.gz", destfile ="sr_hex.csv.gz", method='curl')
   untar("sr_hex.csv.gz")
-  file.remove("sr_hex.csv.gz)
+  file.remove("sr_hex.csv.gz")
   }
 
 ```
@@ -77,6 +79,8 @@ srhex[is.na(index),index:=0]
 ## Evaluate results using sr_hex.csv
 I have read in sr_hex.csv as the data.table sr_hex_compare
 ```{r}
+#Free Up memory
+rm(hex8, match, sr, sr.sp)
 sr_hex_test <- data.table(merge(srhex, sr_hex_compare, by="NotificationNumber"))
 print(nrow(sr_hex_test[h3_level8_index!=index,]))
 print(nrow(sr_hex_test[h3_level8_index!=index,])/nrow(sr_hex_test))

@@ -7,10 +7,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 ```{r, echo=FALSE}
-## Packages
-
 library(data.table)
 library(ggplot2)
 ```

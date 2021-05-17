@@ -7,6 +7,11 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+```{r, echo=FALSE}
+library(data.table)
+library(ggplot2)
+```
 ## This document sumarises my thoughts for the creation of the dashboard to monitor electricity service requests
 
 Both new requests and open requests are relevant information. New requests are indicative of whether there are systemic problems in certain areas. Open requests add to this, the concept of efficiency in resolving requests. 
@@ -17,10 +22,7 @@ The simplest way for a executive level person to be able to monitor requests is 
 
 To get to this point the service request data needs to be reshaped into a dataset containing the number of new and open requests by suburb, type and date. 
 
-```{r}
-library(data.table)
-library(ggplot2)
-```
+
 
 ### Get and read the data
 I download the files to the project folder, uncompress them and remove the compressed versions. If the uncompressed files already exist, there is not need to download them. 

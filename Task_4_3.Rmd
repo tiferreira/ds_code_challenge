@@ -9,16 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Methodology
-
-Without the use of external data, this becomes a supervised classification problem. If external data could be used, the easiest would be be to overlay small area statistics containing the classifaction from the 2011 Census over the Hex map. 
-
-1.  I manually classify some areas into one of the three categories.
-2. I divide the classfied data into a training and test set. 
-3. I run a random forest to model the classification. Random forests have the ability to handle categorical variables in a classification problem. 
-4. I evaluate the prediction on the test data using Confusion Matrices.
-5. I predict the classification of all Hex's in the full dataset. 
-
 ## Packages
 
 ```{r}
@@ -27,6 +17,19 @@ library(caret)
 library(randomForest)
 library(rgdal)
 ```
+
+
+## Methodology
+
+Without the use of external data, this becomes a supervised classification problem. If external data could be used, the easiest would be be to overlay small area statistics containing the classifaction from the 2011 Census over the Hex map. 
+
+1. I manually classify some areas into one of the three categories.
+2. I divide the classfied data into a training and test set. 
+3. I run a random forest to model the classification. Random forests have the ability to handle categorical variables in a classification problem. 
+4. I evaluate the prediction on the test data using Confusion Matrices.
+5. I predict the classification of all Hex's in the full dataset. 
+
+
 
 ## Data Setup
 
